@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VF Contract Agreement – Mail Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- XLSX library -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f5fb;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 0;
+    }
+    .subtitle {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #666;
+    }
+    .section-title {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    .mode-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .mode-card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      flex: 1;
+      cursor: pointer;
+      background: #fafafa;
+    }
+    .mode-card.active {
+      border-color: #4f46e5;
+      background: #eef0ff;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .form-group input,
+    .form-group textarea {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #4f46e5;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #ddd;
+    }
+    .btn-send {
+      background: #16a34a;
+      color: #fff;
+    }
+    .table-wrapper {
+      margin-top: 25px;
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 6px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    thead {
+      background: #4f46e5;
+      color: #fff;
+    }
+
+    /* Loader Overlay */
+    .loader-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .loader-box {
+      background: #fff;
+      padding: 20px 24px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 4px solid #e5e7eb;
+      border-top-color: #4f46e5;
+      margin: 0 auto 10px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <h1>VF Contract Agreement – Mail Tool</h1>
+  <p class="subtitle">Fill for one employee OR upload Excel for multiple employees</p>
+
+  <!-- MODE SELECTION -->
+  <div class="section-title">1. Choose Mode</div>
+  <div class="mode-selector">
+    <label class="mode-card active" id="modeSingleCard">
+      <input type="radio" name="mode" value="single" checked> Single Entry
+    </label>
+    <label class="mode-card" id="modeBulkCard">
+      <input type="radio" name="mode" value="bulk"> Bulk Upload
+    </label>
+  </div>
+
+  <!-- SINGLE ENTRY -->
+  <div id="singleEntrySection">
+    <div class="section-title">2. Employee Details</div>
+
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label>Doc Ref</label>
+        <input id="docRef">
+      </div>
+
+      <div class="form-group">
+        <label>Start_Date</label>
+        <input type="date" id="startDate">
+      </div>
+
+      <div class="form-group">
+        <label>Name</label>
+        <input id="name">
+      </div>
+
+      <div class="form-group">
+        <label>End_Date</label>
+        <input type="date" id="endDate">
+      </div>
+
+      <div class="form-group">
+        <label>Address</label>
+        <textarea id="address"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input id="email" type="email">
+      </div>
+
+      <div class="form-group">
+        <label>Email_Id (Mail To)</label>
+        <input id="emailId" type="email">
+      </div>
+
+      <div class="form-group">
+        <label>Course</label>
+        <input id="course">
+      </div>
+
+      <div class="form-group">
+        <label>Live_Class</label>
+        <input id="liveClass">
+      </div>
+
+      <div class="form-group">
+        <label>TLEP</label>
+        <input id="tlep">
+      </div>
+
+      <div class="form-group">
+        <label>Pre-recording</label>
+        <input id="preRecording">
+      </div>
+
+      <div class="form-group">
+        <label>CA Evaluation</label>
+        <input id="caEvaluation">
+      </div>
+
+      <div class="form-group">
+        <label>QB</label>
+        <input id="qb">
+      </div>
+
+    </div>
+
+    <br>
+    <button class="btn-primary" onclick="addSingleEntry()">+ Add to List</button>
+    <button class="btn-secondary" onclick="clearSingleForm()">Clear</button>
+  </div>
+
+  <!-- BULK UPLOAD -->
+  <div id="bulkSection" style="display:none;">
+    <div class="section-title">2. Bulk Upload Excel</div>
+
+    <button class="btn-secondary" onclick="downloadSampleExcel()">⬇ Download Sample Excel</button>
+    <br><br>
+
+    <input type="file" id="excelFileInput" accept=".xlsx,.xls" onchange="handleExcelUpload(event)">
+  </div>
+
+  <!-- TABLE PREVIEW -->
+  <div class="table-wrapper" id="tableWrapper">
+    <h3>3. Preview</h3>
+    <table>
+      <thead><tr id="tableHeadRow"></tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <br>
+    <button class="btn-secondary" onclick="clearAllData()">Clear All</button>
+    <button class="btn-send" onclick="sendMails()">📧 Send Mails</button>
+  </div>
+
+</div>
+
+<!-- Loader Overlay -->
+<div id="loaderOverlay" class="loader-overlay">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <div>Sending mails… please don’t close this page.</div>
+  </div>
+</div>
+
+<script>
+const HEADERS = [
+  "Doc Ref",
+  "Start_Date",
+  "Name",
+  "End_Date",
+  "Address",
+  "Email",
+  "Email_Id",
+  "Course",
+  "Live_Class",
+  "TLEP",
+  "Pre-recording",
+  "CA Evaluation",
+  "QB"
+];
+
+let dataRows = [];
+
+/* MODE TOGGLE */
+const singleSection = document.getElementById("singleEntrySection");
+const bulkSection = document.getElementById("bulkSection");
+const modeSingleCard = document.getElementById("modeSingleCard");
+const modeBulkCard = document.getElementById("modeBulkCard");
+
+modeSingleCard.onclick = () => {
+  modeSingleCard.classList.add("active");
+  modeBulkCard.classList.remove("active");
+  singleSection.style.display = "";
+  bulkSection.style.display = "none";
+};
+
+modeBulkCard.onclick = () => {
+  modeBulkCard.classList.add("active");
+  modeSingleCard.classList.remove("active");
+  singleSection.style.display = "none";
+  bulkSection.style.display = "";
+};
+
+/* TABLE HEADER */
+function initHeader() {
+  const head = document.getElementById("tableHeadRow");
+  head.innerHTML = "";
+  HEADERS.forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    head.appendChild(th);
+  });
+}
+initHeader();
+
+/* ADD SINGLE ENTRY */
+function addSingleEntry() {
+  const row = {
+    "Doc Ref": docRef.value.trim(),
+    "Start_Date": startDate.value,
+    "Name": name.value.trim(),
+    "End_Date": endDate.value,
+    "Address": address.value.trim(),
+    "Email": email.value.trim(),
+    "Email_Id": emailId.value.trim(),
+    "Course": course.value.trim(),
+    "Live_Class": liveClass.value.trim(),
+    "TLEP": tlep.value.trim(),
+    "Pre-recording": preRecording.value.trim(),
+    "CA Evaluation": caEvaluation.value.trim(),
+    "QB": qb.value.trim()
+  };
+
+  if (!row["Email_Id"]) {
+    alert("Email_Id is required.");
+    return;
+  }
+
+  dataRows.push(row);
+  renderTable();
+  clearSingleForm();
+}
+
+function clearSingleForm() {
+  document.querySelectorAll("#singleEntrySection input, textarea").forEach(inp => inp.value = "");
+}
+
+/* DOWNLOAD SAMPLE EXCEL */
+function downloadSampleExcel() {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([HEADERS]);
+  XLSX.utils.book_append_sheet(wb, ws, "Sample");
+  XLSX.writeFile(wb, "VF_Contract_Sample.xlsx");
+}
+
+/* READ EXCEL */
+function handleExcelUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+    rows.forEach(r => dataRows.push(r));
+    renderTable();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* PREVIEW DATE FORMAT (same style as backend) */
+function normalizePreviewDate(value) {
+  if (value === null || value === undefined || value === "") return "";
+
+  const numVal = Number(value);
+  if (!isNaN(numVal) && numVal > 40000 && numVal < 70000) {
+    return previewDateFromExcelSerial(numVal);
+  }
+
+  const parsed = new Date(value);
+  if (!isNaN(parsed)) {
+    return formatDateWithSuffix(parsed);
+  }
+
+  return value;
+}
+
+function previewDateFromExcelSerial(serial) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+  const date = new Date(excelEpoch.getTime() + serial * msPerDay);
+  return formatDateWithSuffix(date);
+}
+
+function formatDateWithSuffix(date) {
+  const dayNum = date.getUTCDate();
+  const dd = String(dayNum).padStart(2, "0");
+  const monthNames = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+  const monthName = monthNames[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+
+  let suffix = "th";
+  if (dayNum % 10 === 1 && dayNum !== 11) suffix = "st";
+  else if (dayNum % 10 === 2 && dayNum !== 12) suffix = "nd";
+  else if (dayNum % 10 === 3 && dayNum !== 13) suffix = "rd";
+
+  return dd + suffix + " " + monthName + " " + year;
+}
+
+/* RENDER TABLE */
+function renderTable() {
+  const wrapper = document.getElementById("tableWrapper");
+  const body = document.getElementById("tableBody");
+
+  if (dataRows.length === 0) {
+    wrapper.style.display = "none";
+    body.innerHTML = "";
+    return;
+  }
+
+  wrapper.style.display = "block";
+  body.innerHTML = "";
+
+  dataRows.forEach(r => {
+    const tr = document.createElement("tr");
+    HEADERS.forEach(h => {
+      const td = document.createElement("td");
+      let val = r[h] || "";
+      if (h === "Start_Date" || h === "End_Date") {
+        val = normalizePreviewDate(val);
+      }
+      td.textContent = val;
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+}
+
+function clearAllData() {
+  if (!confirm("Clear all data?")) return;
+  dataRows = [];
+  renderTable();
+}
+
+/* LOADER */
+function showLoader() {
+  document.getElementById("loaderOverlay").style.display = "flex";
+}
+function hideLoader() {
+  document.getElementById("loaderOverlay").style.display = "none";
+}
+
+/* SEND MAILS */
+const WEBAPP_URL =
+  "https://script.google.com/macros/s/AKfycbxoeWVY3DM_TUmigl_DsOpRAyqcZkM8vhHQosCMuMrdK9v4zQk_gT3gfjWqtlBrGwMf9Q/exec";
+
+function sendMails() {
+  if (dataRows.length === 0) {
+    alert("No records to send.");
+    return;
+  }
+
+  if (!confirm("Send emails for " + dataRows.length + " record(s)?")) return;
+
+  showLoader();
+
+  fetch(WEBAPP_URL, {
+    method: "POST",
+    mode: "no-cors",   // important for file:/// origin
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rows: dataRows })
+  })
+    .then(() => {
+      hideLoader();
+      alert("Successfully sent (request received by server).\nCheck your email and Google Sheet log.");
+    })
+    .catch(err => {
+      console.error(err);
+      hideLoader();
+      alert("Not sent: " + (err && err.message ? err.message : err));
+    });
+}
+</script>
+
+</body>
+</html>
