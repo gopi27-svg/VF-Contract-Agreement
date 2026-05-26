@@ -361,8 +361,7 @@ function showLoader() { document.getElementById("loaderOverlay").style.display =
 function hideLoader() { document.getElementById("loaderOverlay").style.display = "none"; }
 
 /* ===== SEND MAILS ===== */
-const WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbzuFrSH0Vc4IiI_TW07k_prfJXoAripi_C48IJt3jzSYavHh0_dB1ZdiFktE4oQQ1v5/exec";
+const WEBAPP_URL = "https://vf-mail-backend.onrender.com/send";
 
 function sendMails() {
   const type = getAgreementType();
@@ -379,13 +378,17 @@ function sendMails() {
 
   fetch(WEBAPP_URL, {
     method: "POST",
-    mode: "no-cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ agreementType: type, rows: rowsToSend })
   })
-    .then(() => {
+    .then(res => res.json())
+    .then(data => {
       hideLoader();
-      alert("Successfully sent (request received by server).");
+      if (data.ok) {
+        alert("Successfully sent " + data.sentCount + " email(s)!");
+      } else {
+        alert("Error: " + data.message);
+      }
     })
     .catch(err => {
       console.error(err);
