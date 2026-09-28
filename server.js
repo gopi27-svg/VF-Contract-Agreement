@@ -19,7 +19,37 @@ function formatDate(value) {
   return `${String(day).padStart(2,'0')}${suffix} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-// ── Log to Google Sheet via Apps Script ────────────────────
+// ── Ask Apps Script to fill the Google Doc template, make the PDF,
+//    and log the row in the Sheet. Returns { pdfBuffer, pdfName, pdfUrl } or null.
+async function getPdfFromAppsScript(row, agreementType) {
+  const scriptUrl = process.env.APPS_SCRIPT_URL;
+  if (!scriptUrl) return null;
+  try {
+    const res = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ agreementType, row }),
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    const data = JSON.parse(text);
+    if (!data.ok || !data.pdfBase64) {
+      console.error('Apps Script error:', data.message || text.slice(0, 300));
+      return null;
+    }
+    console.log('Apps Script PDF:', data.pdfUrl);
+    return {
+      pdfBuffer: Buffer.from(data.pdfBase64, 'base64'),
+      pdfName: data.pdfName,
+      pdfUrl: data.pdfUrl
+    };
+  } catch (err) {
+    console.error('Apps Script call failed:', err.message);
+    return null;
+  }
+}
+
+// ── (Old) Log to Google Sheet via Apps Script GET – used only in fallback ──
 function logToSheet(row, agreementType) {
   return new Promise((resolve) => {
     try {
@@ -76,6 +106,7 @@ function buildPdfHtml(row) {
   <div class="field"><span class="label">Start Date:</span> ${formatDate(row['Start_Date'])}</div>
   <div class="field"><span class="label">End Date:</span> ${formatDate(row['End_Date'])}</div>
   <div class="field"><span class="label">Course:</span> ${row['Course'] || ''}</div>
+  <div class="field"><span class="label">Batch Name:</span> ${row['Batch Name'] || ''}</div>
   <div class="field"><span class="label">Live Class:</span> ${row['Live_Class'] || ''}</div>
   <div class="field"><span class="label">TLEP:</span> ${row['TLEP'] || ''}</div>
   <div class="field"><span class="label">Pre-recording:</span> ${row['Pre-recording'] || ''}</div>
@@ -133,15 +164,22 @@ app.post('/send', async (req, res) => {
       const fixedCC = process.env.CC_EMAILS || '';
       const finalCC = [excelCC, fixedCC].filter(Boolean).join(',');
 
-      // Generate PDF using html-to-pdf approach
-      const pdfName = `VF_${(row['Doc Ref'] || 'Doc')}_${(row['Name'] || 'Name')}.pdf`.replace(/[\\/:*?"<>|]/g, '_');
-
-      // Convert HTML to PDF buffer using a simple approach
+      let pdfName = `VF_${(row['Doc Ref'] || 'Doc')}_${(row['Name'] || 'Name')}.pdf`.replace(/[\\/:*?"<>|]/g, '_');
       let pdfBuffer = null;
-      try {
-        pdfBuffer = await generatePdf(buildPdfHtml(row));
-      } catch (pdfErr) {
-        console.error('PDF generation error:', pdfErr.message);
+
+      // 1st choice: real contract from the Google Doc template (also logs to Sheet)
+      const fromScript = await getPdfFromAppsScript(row, agreementType || 'normal');
+      if (fromScript) {
+        pdfBuffer = fromScript.pdfBuffer;
+        pdfName = fromScript.pdfName || pdfName;
+      } else {
+        // Fallback: simple HTML PDF + old-style sheet log
+        try {
+          pdfBuffer = await generatePdf(buildPdfHtml(row));
+        } catch (pdfErr) {
+          console.error('PDF generation error:', pdfErr.message);
+        }
+        await logToSheet(row, agreementType || 'normal');
       }
 
       const mailOptions = {
@@ -165,10 +203,6 @@ app.post('/send', async (req, res) => {
       }
 
       await transporter.sendMail(mailOptions);
-
-      // Log to Google Sheet
-      await logToSheet(row, agreementType || 'normal');
-
       sentCount++;
     }
 
