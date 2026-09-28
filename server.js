@@ -1,6 +1,7 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
@@ -8,7 +9,7 @@ app.use(express.json({ limit: '5mb' }));
 
 // ── Ask Apps Script to fill the Google Doc template, make the PDF and log to Sheet ──
 // Returns { pdfBuffer, pdfName, pdfUrl } or throws with the reason.
-async function getPdfFromAppsScript(row, agreementType) {
+async function getPdfFromAppsScript(row, agreementType, requestId) {
   const scriptUrl = process.env.APPS_SCRIPT_URL;
   if (!scriptUrl) throw new Error('APPS_SCRIPT_URL is not set on Render');
 
@@ -18,7 +19,7 @@ async function getPdfFromAppsScript(row, agreementType) {
       const res = await fetch(scriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ agreementType, row }),
+        body: JSON.stringify({ agreementType, row, requestId }),   // same ID on retry → no duplicate
         redirect: 'follow'
       });
       const text = await res.text();
@@ -83,7 +84,8 @@ app.post('/send', async (req, res) => {
 
       try {
         // 1. Get the filled contract PDF (also logs the row in Google Sheet)
-        const pdf = await getPdfFromAppsScript(row, agreementType || 'normal');
+        const requestId = row['_reqId'] || crypto.randomUUID();
+        const pdf = await getPdfFromAppsScript(row, agreementType || 'normal', requestId);
 
         // 2. Send mail WITH the PDF (never without it)
         const excelCC = String(row['Email'] || '').trim();
