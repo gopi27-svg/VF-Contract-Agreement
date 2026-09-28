@@ -156,6 +156,13 @@ const INT_HEADERS = [
 
 let dataRows = []; // each row has an "Agreement_Type" key
 
+// Unique ID per row – Apps Script uses it so the same row is never saved twice
+function newReqId() {
+  return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+let isSending = false;
+
 function getAgreementType() {
   return document.getElementById("agreementType").value; // "normal" | "international"
 }
@@ -230,7 +237,8 @@ function addSingleEntry() {
     "Batch Name":   (document.getElementById("batchName").value || "").trim(),
     "Live_Class":   (document.getElementById("liveClass").value || "").trim(),
     "TLEP":         (document.getElementById("tlep").value || "").trim(),
-    "Agreement_Type": type
+    "Agreement_Type": type,
+    "_reqId": newReqId()
   };
 
   // Normal-only fields
@@ -291,6 +299,7 @@ function handleExcelUpload(event) {
         r[isBatch ? "Batch Name" : key] = isBatch ? String(shown[i][k]).trim() : raw[k];
       });
       r["Agreement_Type"] = type;
+      r["_reqId"] = newReqId();
       dataRows.push(r);
     });
 
@@ -383,8 +392,12 @@ function sendMails() {
     return;
   }
 
+  if (isSending) return;                       // block double click
   if (!confirm("Send emails for " + rowsToSend.length + " record(s)?")) return;
 
+  isSending = true;
+  const sendBtn = document.querySelector(".btn-send");
+  if (sendBtn) sendBtn.disabled = true;
   showLoader();
 
   fetch(WEBAPP_URL, {
@@ -402,6 +415,11 @@ function sendMails() {
             data.failed.map(f => "• " + f.name + " – " + f.reason).join("\n");
         }
         alert(msg);
+        // Remove sent rows from the list so they can't be sent again by mistake
+        const failedNames = (data.failed || []).map(f => f.name);
+        dataRows = dataRows.filter(r => !rowsToSend.includes(r) ||
+          failedNames.includes(r["Name"] || r["Email_Id"] || r["Doc Ref"]));
+        renderTable();
       } else {
         alert("Error: " + data.message);
       }
@@ -410,6 +428,11 @@ function sendMails() {
       console.error(err);
       hideLoader();
       alert("Not sent: " + (err && err.message ? err.message : err));
+    })
+    .finally(() => {
+      isSending = false;
+      const sendBtn = document.querySelector(".btn-send");
+      if (sendBtn) sendBtn.disabled = false;
     });
 }
 
