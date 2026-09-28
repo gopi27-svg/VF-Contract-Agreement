@@ -89,6 +89,7 @@
       <div class="form-group"><label>Email (CC)</label><input id="emailCC" type="email"></div>
       <div class="form-group"><label>Email_Id (Mail To)</label><input id="emailId" type="email"></div>
       <div class="form-group"><label>Course</label><input id="course"></div>
+      <div class="form-group"><label>Batch Name</label><input id="batchName"></div>
       <div class="form-group"><label>Live_Class</label><input id="liveClass"></div>
       <div class="form-group"><label>TLEP</label><input id="tlep"></div>
 
@@ -145,12 +146,12 @@
  */
 const NORMAL_HEADERS = [
   "Doc Ref","Start_Date","Name","End_Date","Address","Email","Email_Id",
-  "Course","Live_Class","TLEP","Pre-recording","CA Evaluation","QB"
+  "Course","Batch Name","Live_Class","TLEP","Pre-recording","CA Evaluation","QB"
 ];
 
 const INT_HEADERS = [
   "Doc Ref","Start_Date","Name","End_Date","Address","Email","Email_Id",
-  "Course","Live_Class","TLEP"
+  "Course","Batch Name","Live_Class","TLEP"
 ];
 
 let dataRows = []; // each row has an "Agreement_Type" key
@@ -226,6 +227,7 @@ function addSingleEntry() {
     "Email":        (document.getElementById("emailCC").value || "").trim(),   // ← CC field, key = "Email"
     "Email_Id":     (document.getElementById("emailId").value || "").trim(),   // ← To field
     "Course":       (document.getElementById("course").value || "").trim(),
+    "Batch Name":   (document.getElementById("batchName").value || "").trim(),
     "Live_Class":   (document.getElementById("liveClass").value || "").trim(),
     "TLEP":         (document.getElementById("tlep").value || "").trim(),
     "Agreement_Type": type
@@ -275,10 +277,13 @@ function handleExcelUpload(event) {
   reader.onload = function(e) {
     const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows  = XLSX.utils.sheet_to_json(sheet);
+    const rows  = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
     const type = getAgreementType();
-    rows.forEach(r => {
+    rows.forEach(raw => {
+      // trim header names so "Batch Name " in Excel still matches "Batch Name"
+      const r = {};
+      Object.keys(raw).forEach(k => { r[String(k).trim()] = raw[k]; });
       r["Agreement_Type"] = type;
       dataRows.push(r);
     });
