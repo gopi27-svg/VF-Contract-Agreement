@@ -278,12 +278,18 @@ function handleExcelUpload(event) {
     const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows  = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    // Same rows, but as the text you SEE in Excel (so "Jul-26" stays "Jul-26", not 46204)
+    const shown = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
 
     const type = getAgreementType();
-    rows.forEach(raw => {
+    rows.forEach((raw, i) => {
       // trim header names so "Batch Name " in Excel still matches "Batch Name"
       const r = {};
-      Object.keys(raw).forEach(k => { r[String(k).trim()] = raw[k]; });
+      Object.keys(raw).forEach(k => {
+        const key = String(k).trim();
+        const isBatch = key.toLowerCase().replace(/[\s_\-]+/g, "") === "batchname";
+        r[isBatch ? "Batch Name" : key] = isBatch ? String(shown[i][k]).trim() : raw[k];
+      });
       r["Agreement_Type"] = type;
       dataRows.push(r);
     });
@@ -390,7 +396,12 @@ function sendMails() {
     .then(data => {
       hideLoader();
       if (data.ok) {
-        alert("Successfully sent " + data.sentCount + " email(s)!");
+        let msg = "Successfully sent " + data.sentCount + " email(s) with PDF!";
+        if (data.failed && data.failed.length) {
+          msg += "\n\nNOT sent (" + data.failed.length + "):\n" +
+            data.failed.map(f => "• " + f.name + " – " + f.reason).join("\n");
+        }
+        alert(msg);
       } else {
         alert("Error: " + data.message);
       }
