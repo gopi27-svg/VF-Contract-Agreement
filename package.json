@@ -10,5 +10,8 @@
     "nodemailer": "^6.9.9",
     "puppeteer": "^22.0.0",
     "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
